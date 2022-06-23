@@ -208,7 +208,14 @@ class Annealer(object):
             else:
                 E += dE
             trials += 1
-            if dE > 0.0 and math.exp(-dE / T) < random.random():
+
+            try:
+                p = math.exp(-dE / T)
+            except OverflowError:
+                p = - float('inf')
+
+            # if dE > 0.0 and math.exp(-dE / T) < random.random():
+            if dE < 0.0 and p > random.random():
                 # Restore previous state
                 self.state = self.copy_state(prevState)
                 E = prevEnergy
@@ -256,7 +263,14 @@ class Annealer(object):
                     dE = E - prevEnergy
                 else:
                     E = prevEnergy + dE
-                if dE > 0.0 and math.exp(-dE / T) < random.random():
+
+                try:
+                    p = math.exp(-dE / T)
+                except OverflowError:
+                    p = float('inf')
+
+                # if dE > 0.0 and math.exp(-dE / T) < random.random():
+                if dE < 0.0 and p > random.random():
                     self.state = self.copy_state(prevState)
                     E = prevEnergy
                 else:
