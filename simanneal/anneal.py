@@ -11,6 +11,10 @@ import random
 import signal
 import sys
 import time
+import csv
+
+from numpy import asarray
+from numpy import savetxt
 
 
 def round_figures(x, n):
@@ -48,6 +52,8 @@ class Annealer(object):
     best_state = None
     best_energy = None
     start = None
+
+    recorded_best_state = None
 
     def __init__(self, initial_state=None, load_state=None):
         if initial_state is not None:
@@ -177,6 +183,11 @@ class Annealer(object):
         (state, energy): the best state and energy found.
         """
         step = 0
+
+        self.solution_stream = open(self.recorded_best_state, 'a+', newline='')
+
+        self.solution_writer = csv.writer(self.solution_stream)
+
         self.start = time.time()
 
         # Precompute factor for exponential cooling from Tmax to Tmin
@@ -207,15 +218,16 @@ class Annealer(object):
                 dE = E - prevEnergy
             else:
                 E += dE
+                # E = prevEnergy + dE
             trials += 1
 
-            try:
-                p = math.exp(-dE / T)
-            except OverflowError:
-                p = - float('inf')
+            # try:
+            #     p = math.exp(-dE / T)
+            # except OverflowError:
+            #     p = - float('inf')
 
-            # if dE > 0.0 and math.exp(-dE / T) < random.random():
-            if dE < 0.0 and p > random.random():
+            if dE > 0.0 and math.exp(-dE / T) < random.random():
+            # if dE < 0.0 and p > random.random():
                 # Restore previous state
                 self.state = self.copy_state(prevState)
                 E = prevEnergy
@@ -229,6 +241,9 @@ class Annealer(object):
                 if E < self.best_energy:
                     self.best_state = self.copy_state(self.state)
                     self.best_energy = E
+            # self.recorded_best_state.append(self.best_state)
+            # self.solution_writer.writerow(self.best_state)
+            # savetxt(self.recorded_best_state, self.best_state, delimiter=',', newline='\n')
             if self.updates > 1:
                 if (step // updateWavelength) > ((step - 1) // updateWavelength):
                     self.update(
@@ -240,7 +255,7 @@ class Annealer(object):
             self.save_state()
 
         # Return best state and energy
-        return self.best_state, self.best_energy
+        return self.best_state, self.best_energy, self.recorded_best_state
 
     def auto(self, minutes, steps=2000):
         """Explores the annealing landscape and
@@ -264,13 +279,13 @@ class Annealer(object):
                 else:
                     E = prevEnergy + dE
 
-                try:
-                    p = math.exp(-dE / T)
-                except OverflowError:
-                    p = float('inf')
+                # try:
+                #     p = math.exp(-dE / T)
+                # except OverflowError:
+                #     p = float('inf')
 
-                # if dE > 0.0 and math.exp(-dE / T) < random.random():
-                if dE < 0.0 and p > random.random():
+                if dE > 0.0 and math.exp(-dE / T) < random.random():
+                # if dE < 0.0 and p > random.random():
                     self.state = self.copy_state(prevState)
                     E = prevEnergy
                 else:
